@@ -4,56 +4,61 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quiosque de Senhas</title>
+
+    <!-- Firebase App (Core) e Cloud Firestore SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
     <style>
         :root {
-            --bg-color: #f0f2f5;
-            --text-main: #1a365d;
-            --text-desc: #4a5568;
-            --card-bg: #ffffff;
-            --card-text: #2d3748;
-            --aviso-bg: #feebc8;
-            --aviso-border: #fbd38d;
-            --aviso-text: #2d3748;
-            --btn-geral-bg: linear-gradient(135deg, #2b6cb0, #4299e1);
-            --btn-prioritario-bg: linear-gradient(135deg, #c53030, #f56565);
-            --senha-geral-color: #2b6cb0;
-            --senha-prioritario-color: #c53030;
-            --anim-geral-bg: #ebf8ff;
-            --anim-prioritario-bg: #fff5f5;
-            --theme-btn-bg: #ffffff;
-            --theme-btn-border: #cbd5e0;
-            --theme-btn-text: #4a5568;
-            --flag-border: #cbd5e0;
+            --bg-color: #090d16;
+            --text-main: #f8fafc;
+            --text-desc: #94a3b8;
+            --card-bg: #131d31;
+            --card-text: #f8fafc;
+            --aviso-bg: #1a2642;
+            --aviso-border: #273759;
+            --aviso-text: #f8fafc;
+            --btn-geral-bg: linear-gradient(135deg, #0284c7, #0369a1);
+            --btn-prioritario-bg: linear-gradient(135deg, #dc2626, #b91c1c);
+            --senha-geral-color: #0ea5e9;
+            --senha-prioritario-color: #ef4444;
+            --anim-geral-bg: #17233f;
+            --anim-prioritario-bg: #3f1a1a;
+            --theme-btn-bg: #1a2642;
+            --theme-btn-border: #273759;
+            --theme-btn-text: #f8fafc;
+            --flag-border: #273759;
         }
 
-        [data-theme="dark"] {
-            --bg-color: #121824;
-            --text-main: #f7fafc;
-            --text-desc: #a0aec0;
-            --card-bg: #1e293b;
-            --card-text: #f1f5f9;
-            --aviso-bg: #2d3748;
-            --aviso-border: #4a5568;
-            --aviso-text: #f7fafc;
-            --btn-geral-bg: linear-gradient(135deg, #1d4ed8, #3b82f6);
-            --btn-prioritario-bg: linear-gradient(135deg, #b91c1c, #ef4444);
-            --senha-geral-color: #60a5fa;
-            --senha-prioritario-color: #f87171;
-            --anim-geral-bg: #1e3a8a;
-            --anim-prioritario-bg: #7f1d1d;
-            --theme-btn-bg: #1e293b;
-            --theme-btn-border: #475569;
-            --theme-btn-text: #f1f5f9;
-            --flag-border: #475569;
+        [data-theme="light"] {
+            --bg-color: #f1f5f9;
+            --text-main: #0f172a;
+            --text-desc: #64748b;
+            --card-bg: #ffffff;
+            --card-text: #0f172a;
+            --aviso-bg: #fef3c7;
+            --aviso-border: #fde68a;
+            --aviso-text: #78350f;
+            --btn-geral-bg: linear-gradient(135deg, #0284c7, #0369a1);
+            --btn-prioritario-bg: linear-gradient(135deg, #dc2626, #b91c1c);
+            --senha-geral-color: #0284c7;
+            --senha-prioritario-color: #dc2626;
+            --anim-geral-bg: #e0f2fe;
+            --anim-prioritario-bg: #fee2e2;
+            --theme-btn-bg: #ffffff;
+            --theme-btn-border: #cbd5e1;
+            --theme-btn-text: #0f172a;
+            --flag-border: #cbd5e1;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             user-select: none;
-            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+            transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
         }
 
         body {
@@ -72,7 +77,7 @@
             top: 20px;
             right: 20px;
             display: flex;
-            gap: 10px;
+            gap: 12px;
             align-items: center;
         }
 
@@ -81,15 +86,19 @@
             border: 1px solid var(--theme-btn-border);
             color: var(--theme-btn-text);
             padding: 10px 16px;
-            border-radius: 30px;
+            border-radius: 12px;
             cursor: pointer;
             font-size: 0.95rem;
             font-weight: 600;
             display: flex;
             align-items: center;
             gap: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             outline: none;
+        }
+
+        .top-btn:hover {
+            border-color: var(--senha-geral-color);
         }
 
         .top-btn:active {
@@ -102,42 +111,46 @@
 
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 35px;
         }
 
         .header h1 {
             color: var(--text-main);
             font-size: 2.5rem;
             margin-bottom: 10px;
+            font-weight: 800;
+            letter-spacing: 1px;
         }
 
         .header p {
             color: var(--text-desc);
             font-size: 1.2rem;
+            font-weight: 500;
         }
 
         .container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 25px;
             width: 100%;
-            max-width: 800px;
+            max-width: 850px;
         }
 
         .btn-senha {
             border: none;
-            border-radius: 15px;
-            padding: 40px 20px;
-            font-size: 2rem;
-            font-weight: bold;
+            border-radius: 20px;
+            padding: 45px 25px;
+            font-size: 2.2rem;
+            font-weight: 800;
             color: white;
             cursor: pointer;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
             transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 12px;
+            letter-spacing: 1px;
         }
 
         .btn-senha:active:not(:disabled) {
@@ -151,47 +164,52 @@
 
         .btn-geral {
             background: var(--btn-geral-bg);
+            border: 2px solid #38bdf8;
         }
 
         .btn-prioritario {
             background: var(--btn-prioritario-bg);
+            border: 2px solid #f87171;
         }
 
         .display-ultimo {
-            margin-top: 35px;
+            margin-top: 40px;
             background: var(--card-bg);
-            padding: 25px 35px;
-            border-radius: 16px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            border: 2px solid var(--aviso-border);
+            padding: 30px 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
             text-align: center;
-            max-width: 600px;
+            max-width: 650px;
             width: 100%;
         }
 
         .display-ultimo h2 {
-            font-size: 1.3rem;
-            color: var(--card-text);
+            font-size: 1.2rem;
+            color: var(--text-desc);
             margin-bottom: 10px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
+            font-weight: 700;
         }
 
         .display-ultimo .senha-gerada {
-            font-size: 4rem;
-            font-weight: 800;
+            font-size: 5rem;
+            font-weight: 900;
             color: var(--senha-geral-color);
-            letter-spacing: 2px;
-            margin: 5px 0;
+            letter-spacing: 3px;
+            margin: 10px 0;
+            line-height: 1;
         }
 
         .aviso-foto {
-            margin-top: 15px;
-            font-size: 1.05rem;
+            margin-top: 20px;
+            font-size: 1.1rem;
             color: var(--aviso-text);
             background-color: var(--aviso-bg);
             border: 1px solid var(--aviso-border);
-            padding: 12px 18px;
-            border-radius: 10px;
+            padding: 14px 20px;
+            border-radius: 12px;
             font-weight: 600;
             line-height: 1.4;
         }
@@ -200,20 +218,20 @@
             display: flex;
             justify-content: center;
             gap: 12px;
-            margin-top: 20px;
+            margin-top: 25px;
             flex-wrap: wrap;
         }
 
         .flag-btn {
             background-color: var(--card-bg);
             border: 2px solid var(--flag-border);
-            border-radius: 8px;
+            border-radius: 10px;
             padding: 6px 10px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
             transition: transform 0.2s, border-color 0.2s, background-color 0.2s;
         }
 
@@ -221,18 +239,19 @@
             width: 36px;
             height: 24px;
             object-fit: cover;
-            border-radius: 3px;
+            border-radius: 4px;
             display: block;
         }
 
         .flag-btn:hover {
             transform: scale(1.08);
+            border-color: var(--senha-geral-color);
         }
 
         .flag-btn.active {
-            border-color: #3182ce;
+            border-color: var(--senha-geral-color);
             background-color: var(--anim-geral-bg);
-            box-shadow: 0 0 10px rgba(66, 153, 225, 0.4);
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.3);
         }
 
         .animar-geral {
@@ -244,15 +263,15 @@
         }
 
         @keyframes pulse-azul {
-            0% { transform: scale(1); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); background-color: var(--card-bg); }
-            40% { transform: scale(1.06); box-shadow: 0 0 25px rgba(66, 153, 225, 0.6); background-color: var(--anim-geral-bg); }
-            100% { transform: scale(1); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); background-color: var(--card-bg); }
+            0% { transform: scale(1); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); background-color: var(--card-bg); }
+            40% { transform: scale(1.03); box-shadow: 0 0 30px rgba(14, 165, 233, 0.4); background-color: var(--anim-geral-bg); }
+            100% { transform: scale(1); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); background-color: var(--card-bg); }
         }
 
         @keyframes pulse-vermelho {
-            0% { transform: scale(1); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); background-color: var(--card-bg); }
-            40% { transform: scale(1.06); box-shadow: 0 0 25px rgba(245, 101, 101, 0.6); background-color: var(--anim-prioritario-bg); }
-            100% { transform: scale(1); box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); background-color: var(--card-bg); }
+            0% { transform: scale(1); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); background-color: var(--card-bg); }
+            40% { transform: scale(1.03); box-shadow: 0 0 30px rgba(239, 68, 68, 0.4); background-color: var(--anim-prioritario-bg); }
+            100% { transform: scale(1); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); background-color: var(--card-bg); }
         }
     </style>
 </head>
@@ -260,7 +279,7 @@
 
     <div class="top-controls">
         <button class="top-btn" id="btnThemeToggle" onclick="alternarTema()">
-            <span id="themeIcon">🌙</span> <span id="themeText">Modo Escuro</span>
+            <span id="themeIcon">⚫</span> <span id="themeText">Modo Escuro</span>
         </button>
         <button class="top-btn fullscreen-btn" id="btnFullscreen" onclick="alternarFullscreen()" title="Ecrã Cheio">
             <span id="fullscreenIcon">⛶</span>
@@ -273,11 +292,11 @@
     </div>
 
     <div class="container">
-        <button id="btnGeral" class="btn-senha btn-geral" onclick="gerarSenha('A', 'Atendimento Geral')">
+        <button id="btnGeral" class="btn-senha btn-geral" onclick="gerarSenha('A')">
             <span id="txtBtnGeral">Atendimento Geral</span>
         </button>
 
-        <button id="btnPrioritario" class="btn-senha btn-prioritario" onclick="gerarSenha('P', 'Prioritário')">
+        <button id="btnPrioritario" class="btn-senha btn-prioritario" onclick="gerarSenha('P')">
             <span id="txtBtnPrioritario">Prioritário</span>
         </button>
     </div>
@@ -315,11 +334,25 @@
     </div>
 
     <script>
-        const CHAVE_STORAGE = 'sistema_senhas_dados';
-        const CHAVE_TEMA = 'sistema_senhas_tema';
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCoyDbE3uycXcua4nor94xsPJhZ5IBFTzY",
+            authDomain: "painel-atendimento-62b5f.firebaseapp.com",
+            projectId: "painel-atendimento-62b5f",
+            storageBucket: "painel-atendimento-62b5f.appspot.com",
+            messagingSenderId: "14880228149",
+            appId: "1:14880228149:web:30dac7c8ed042e128027c"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+        const docRefEstado = db.collection("sistema_senhas").doc("estado_global");
+
+        const CHAVE_TEMA = 'sistema_senhas_tema_kiosk';
         const CHAVE_IDIOMA = 'sistema_senhas_idioma';
         const CHAVE_MUDO_GLOBAL = 'sistema_senhas_mudo_global';
-        let canalSenhas = null;
         let temporizadorReset = null;
         let emProcessamento = false;
 
@@ -353,7 +386,7 @@
                 tituloHeader: "Prenez Votre Ticket", subHeader: "Sélectionnez l'option de service souhaitée",
                 btnGeral: "Service Général", btnPrioritario: "Prioritaire",
                 tituloDisplay: "Votre Ticket Est:",
-                avisoRodape: "📷 Veuillez mémoriser votre numéro de ticket ou prendre une foto avec votre téléphone.",
+                avisoRodape: "📷 Veuillez mémoriser votre numéro de ticket ou prendre une photo avec votre téléphone.",
                 nomeGeral: "Service Général", nomePrioritario: "Prioritaire"
             },
             it: {
@@ -382,12 +415,6 @@
             }
         };
 
-        try {
-            canalSenhas = new BroadcastChannel('canal_senhas_atualizacoes');
-        } catch (e) {
-            console.log('BroadcastChannel não suportado.');
-        }
-
         function estaSistemaMudo() {
             return localStorage.getItem(CHAVE_MUDO_GLOBAL) === 'true';
         }
@@ -397,10 +424,8 @@
                 document.documentElement.requestFullscreen().catch(err => {
                     console.log('Erro ao tentar entrar em ecrã cheio:', err.message);
                 });
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
+            } else if (document.exitFullscreen) {
+                document.exitFullscreen();
             }
         }
 
@@ -427,7 +452,7 @@
         }
 
         function aplicarIdioma(idioma) {
-            const t = traducoes[idioma];
+            const t = traducoes[idioma] || traducoes['pt'];
             document.getElementById('txtTituloHeader').innerText = t.tituloHeader;
             document.getElementById('txtSubHeader').innerText = t.subHeader;
             document.getElementById('txtBtnGeral').innerText = t.btnGeral;
@@ -442,7 +467,7 @@
             
             const temaAtual = document.documentElement.getAttribute('data-theme');
             const textoTema = document.getElementById('themeText');
-            textoTema.innerText = temaAtual === 'dark' ? t.themeLight : t.themeDark;
+            textoTema.innerText = temaAtual === 'light' ? t.themeDark : t.themeLight;
 
             document.querySelectorAll('.flag-btn').forEach(btn => btn.classList.remove('active'));
             const btnAtivo = document.getElementById(`flag-${idioma}`);
@@ -450,13 +475,13 @@
         }
 
         function inicializarTema() {
-            const temaGuardado = localStorage.getItem(CHAVE_TEMA) || 'light';
+            const temaGuardado = localStorage.getItem(CHAVE_TEMA) || 'dark';
             aplicarTema(temaGuardado);
         }
 
         function alternarTema() {
             const temaAtual = document.documentElement.getAttribute('data-theme');
-            const novoTema = temaAtual === 'dark' ? 'light' : 'dark';
+            const novoTema = temaAtual === 'light' ? 'dark' : 'light';
             aplicarTema(novoTema);
             localStorage.setItem(CHAVE_TEMA, novoTema);
         }
@@ -464,17 +489,30 @@
         function aplicarTema(tema) {
             const icone = document.getElementById('themeIcon');
             const idiomaAtual = localStorage.getItem(CHAVE_IDIOMA) || 'pt';
-            const t = traducoes[idiomaAtual];
+            const t = traducoes[idiomaAtual] || traducoes['pt'];
             const texto = document.getElementById('themeText');
             
-            if (tema === 'dark') {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                icone.innerText = '☀️';
-                texto.innerText = t.themeLight;
+            if (tema === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                icone.innerText = '⚫';
+                texto.innerText = t.themeDark;
             } else {
                 document.documentElement.removeAttribute('data-theme');
-                icone.innerText = '🌙';
-                texto.innerText = t.themeDark;
+                icone.innerText = '⚪';
+                texto.innerText = t.themeLight;
+            }
+
+            const elSenha = document.getElementById('ultimaSenha');
+            if (elSenha.innerText !== "---") {
+                const isLight = tema === 'light';
+                if (elSenha.innerText.startsWith('P-')) {
+                    elSenha.style.color = isLight ? '#dc2626' : '#ef4444';
+                } else {
+                    elSenha.style.color = isLight ? '#0284c7' : '#0ea5e9';
+                }
+            } else {
+                const isLight = tema === 'light';
+                elSenha.style.color = isLight ? '#64748b' : '#94a3b8';
             }
         }
 
@@ -491,7 +529,7 @@
                 oscillator.type = 'sine';
                 oscillator.frequency.setValueAtTime(tipo === 'P' ? 659.25 : 440, audioCtx.currentTime);
 
-                gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
 
                 oscillator.connect(gainNode);
@@ -501,45 +539,6 @@
                 oscillator.stop(audioCtx.currentTime + 0.25);
             } catch (err) {
                 console.log('Áudio bloqueado ou não suportado.');
-            }
-        }
-
-        function carregarEstado() {
-            const dadosGuardados = localStorage.getItem(CHAVE_STORAGE);
-            const dataHojeFormatada = new Date().toLocaleDateString('pt-PT');
-            const agora = new Date().getTime();
-
-            if (dadosGuardados) {
-                const estado = JSON.parse(dadosGuardados);
-                // Valida se o dia mudou (limpeza automática diária)
-                if (estado.dataInicioFormatada !== dataHojeFormatada || (agora - estado.timestampInicio >= 86400000)) {
-                    return reiniciarEstado(agora, dataHojeFormatada);
-                }
-                return estado;
-            } else {
-                return reiniciarEstado(agora, dataHojeFormatada);
-            }
-        }
-
-        function reiniciarEstado(agora, dataHojeFormatada) {
-            const novoEstado = {
-                timestampInicio: agora,
-                dataInicioFormatada: dataHojeFormatada,
-                contadores: { A: 0, P: 0 },
-                historico: [],
-                chamadas: [],
-                prioritariasConsecutivas: 0,
-                ultimaModificacao: agora
-            };
-            guardarEstado(novoEstado);
-            return novoEstado;
-        }
-
-        function guardarEstado(estado) {
-            estado.ultimaModificacao = Date.now();
-            localStorage.setItem(CHAVE_STORAGE, JSON.stringify(estado));
-            if (canalSenhas) {
-                canalSenhas.postMessage({ tipo: 'NOVA_SENHA' });
             }
         }
 
@@ -557,11 +556,12 @@
         function expirarSenha() {
             pararAnimacaoVisor();
             const idiomaAtual = localStorage.getItem(CHAVE_IDIOMA) || 'pt';
-            document.getElementById('tituloDisplay').innerText = traducoes[idiomaAtual].tituloDisplay;
+            const t = traducoes[idiomaAtual] || traducoes['pt'];
+            document.getElementById('tituloDisplay').innerText = t.tituloDisplay;
             const elSenha = document.getElementById('ultimaSenha');
             elSenha.innerText = "---";
-            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            elSenha.style.color = isDark ? '#a0aec0' : '#718096';
+            const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+            elSenha.style.color = isLight ? '#64748b' : '#94a3b8';
         }
 
         function gerarSenha(pref) {
@@ -575,57 +575,62 @@
 
             tocarBip(pref);
 
-            let estado = carregarEstado();
+            docRefEstado.get().then((doc) => {
+                let estado = doc.exists ? doc.data() : {};
 
-            if (!estado.contadores[pref]) estado.contadores[pref] = 0;
-            estado.contadores[pref] += 1;
+                if (!estado.contadores) estado.contadores = { A: 0, P: 0 };
+                estado.contadores[pref] = (estado.contadores[pref] || 0) + 1;
 
-            const numeroFormatado = String(estado.contadores[pref]).padStart(3, '0');
-            const codigoSenha = `${pref}-${numeroFormatado}`;
-            const agora = new Date();
-            
-            const idiomaAtual = localStorage.getItem(CHAVE_IDIOMA) || 'pt';
-            const tipoNome = pref === 'A' ? traducoes[idiomaAtual].nomeGeral : traducoes[idiomaAtual].nomePrioritario;
+                const numeroFormatado = String(estado.contadores[pref]).padStart(3, '0');
+                const codigoSenha = `${pref}-${numeroFormatado}`;
+                const agora = new Date();
+                const horaFormatada = agora.toLocaleTimeString('pt-PT');
+                
+                const idiomaAtual = localStorage.getItem(CHAVE_IDIOMA) || 'pt';
+                const t = traducoes[idiomaAtual] || traducoes['pt'];
+                const tipoNome = pref === 'A' ? t.nomeGeral : t.nomePrioritario;
 
-            const registo = `[${agora.toLocaleDateString('pt-PT')} ${agora.toLocaleTimeString('pt-PT')}] Senha: ${codigoSenha} | Tipo: ${tipoNome}`;
-            
-            estado.historico.push(registo);
-            
-            // Limpeza de histórico antigo: mantém apenas os últimos 100 registos para evitar sobrecarga de memória
-            if (estado.historico.length > 100) {
-                estado.historico = estado.historico.slice(-100);
-            }
+                const registo = `[${agora.toLocaleDateString('pt-PT')} ${horaFormatada}] Senha: ${codigoSenha} | Tipo: ${tipoNome}`;
+                
+                if (!estado.historico) estado.historico = [];
+                estado.historico.push(registo);
+                
+                if (estado.historico.length > 100) {
+                    estado.historico = estado.historico.slice(-100);
+                }
 
-            guardarEstado(estado);
-            
-            document.getElementById('tituloDisplay').innerText = traducoes[idiomaAtual].tituloDisplay;
-            const elementoSenha = document.getElementById('ultimaSenha');
-            elementoSenha.innerText = codigoSenha;
-            
-            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            if (pref === 'A') {
-                elementoSenha.style.color = isDark ? '#60a5fa' : '#2b6cb0';
-            } else {
-                elementoSenha.style.color = isDark ? '#f87171' : '#c53030';
-            }
-            
-            animarVisor(pref);
+                return docRefEstado.set(estado).then(() => {
+                    document.getElementById('tituloDisplay').innerText = t.tituloDisplay;
+                    const elementoSenha = document.getElementById('ultimaSenha');
+                    elementoSenha.innerText = codigoSenha;
+                    
+                    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+                    if (pref === 'A') {
+                        elementoSenha.style.color = isLight ? '#0284c7' : '#0ea5e9';
+                    } else {
+                        elementoSenha.style.color = isLight ? '#dc2626' : '#ef4444';
+                    }
+                    
+                    animarVisor(pref);
 
-            if (temporizadorReset) clearTimeout(temporizadorReset);
-            temporizadorReset = setTimeout(expirarSenha, 10000);
-
-            setTimeout(() => {
-                emProcessamento = false;
-                btnGeral.disabled = false;
-                btnPrioritario.disabled = false;
-            }, 1000);
+                    if (temporizadorReset) clearTimeout(temporizadorReset);
+                    temporizadorReset = setTimeout(expirarSenha, 10000);
+                });
+            }).catch((err) => {
+                console.error("Erro ao gerar senha no Firebase:", err);
+            }).finally(() => {
+                setTimeout(() => {
+                    emProcessamento = false;
+                    btnGeral.disabled = false;
+                    btnPrioritario.disabled = false;
+                }, 1000);
+            });
         }
 
         window.onload = () => {
             inicializarTema();
             inicializarIdioma();
             expirarSenha();
-            carregarEstado(); // Executa a verificação e limpeza diária logo no arranque
         };
     </script>
 </body>

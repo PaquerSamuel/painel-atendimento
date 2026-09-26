@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel TV - Senhas</title>
+
+    <!-- Firebase App (Core) e Cloud Firestore SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
     <style>
         :root {
             --bg-primary: #090d16;
@@ -242,7 +247,7 @@
             flex: 1;
             justify-content: space-between;
             gap: 8px;
-            overflow: hidden; /* Remove completamente a barra de rolagem */
+            overflow: hidden;
         }
 
         .item-historico {
@@ -331,12 +336,27 @@
     </div>
 
     <script>
-        const CHAVE_STORAGE = 'sistema_senhas_dados';
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCoyDbE3uycXcua4nor94xsPJhZ5IBFTzY",
+            authDomain: "painel-atendimento-62b5f.firebaseapp.com",
+            projectId: "painel-atendimento-62b5f",
+            storageBucket: "painel-atendimento-62b5f.appspot.com",
+            messagingSenderId: "14880228149",
+            appId: "1:14880228149:web:30dac7c8ed042e128027c"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+        const docRefEstado = db.collection("sistema_senhas").doc("estado_global");
+
         const CHAVE_TEMA_TV = 'sistema_senhas_tema_tv';
         const CHAVE_MUDO_GLOBAL = 'sistema_senhas_mudo_global';
-        const canalSenhas = new BroadcastChannel('canal_senhas_atualizacoes');
         let ultimaSenhaConhecida = "";
         let listaVozes = [];
+        let ultimoComandoFullscreen = 0;
 
         function estaSistemaMudo() {
             return localStorage.getItem(CHAVE_MUDO_GLOBAL) === 'true';
@@ -347,10 +367,8 @@
                 document.documentElement.requestFullscreen().catch(err => {
                     console.log('Erro ao tentar entrar em ecrã cheio:', err.message);
                 });
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                }
+            } else if (document.exitFullscreen) {
+                document.exitFullscreen();
             }
         }
 
@@ -376,15 +394,6 @@
             const novoTema = temaAtual === 'light' ? 'dark' : 'light';
             aplicarTema(novoTema);
             localStorage.setItem(CHAVE_TEMA_TV, novoTema);
-            
-            const dadosGuardados = localStorage.getItem(CHAVE_STORAGE);
-            if (dadosGuardados) {
-                const estado = JSON.parse(dadosGuardados);
-                if (estado.chamadas && estado.chamadas.length > 0) {
-                    const maisRecente = estado.chamadas[estado.chamadas.length - 1];
-                    aplicarCoresVisor(maisRecente.codigo);
-                }
-            }
         }
 
         function aplicarTema(tema) {
@@ -488,7 +497,7 @@
 
                 const mensagem = new SpeechSynthesisUtterance(textoFala);
                 let vozPt = listaVozes.find(v => v.lang === 'pt-PT' || v.lang === 'pt_PT') || listaVozes.find(v => v.lang.startsWith('pt'));
-                if (vozMatch = vozPt) mensagem.voice = vozMatch;
+                if (vozPt) mensagem.voice = vozPt;
 
                 mensagem.lang = 'pt-PT';
                 mensagem.rate = 0.85;
@@ -522,50 +531,44 @@
             }
         }
 
-        function validarEfetuarLimpezaDiaria() {
-            const dadosGuardados = localStorage.getItem(CHAVE_STORAGE);
-            const dataHojeFormatada = new Date().toLocaleDateString('pt-PT');
-            if (dadosGuardados) {
-                const estado = JSON.parse(dadosGuardados);
-                if (estado.dataInicioFormatada !== dataHojeFormatada) {
-                    const estadoVazio = {
-                        timestampInicio: Date.now(),
-                        dataInicioFormatada: dataHojeFormatada,
-                        contadores: { A: 0, P: 0 },
-                        historico: [],
-                        chamadas: [],
-                        prioritariasConsecutivas: 0
-                    };
-                    localStorage.setItem(CHAVE_STORAGE, JSON.stringify(estadoVazio));
-                }
-            }
-        }
+        function atualizarHistoricoLateral(chamadas) {
+            const ul = document.getElementById('listaHistorico');
+            ul.innerHTML = '';
+            const historicoAnterior = [...chamadas].reverse().slice(1, 7);
 
-        function gerirMensagensCanal(evento) {
-            if (!evento || !evento.data) return;
-
-            if (evento.data.tipo === 'ALTERAR_MUDO_GLOBAL') {
-                if (evento.data.mudo && 'speechSynthesis' in window) {
-                    window.speechSynthesis.cancel();
-                }
-            }
-
-            if (evento.data.tipo === 'FORCAR_FULLSCREEN_TV') {
-                if (!document.fullscreenElement) {
-                    document.documentElement.requestFullscreen().catch(err => {
-                        console.log('Erro ao forçar ecrã cheio na TV:', err.message);
-                    });
-                }
+            if (historicoAnterior.length === 0) {
+                ul.innerHTML = '<li class="item-historico"><span class="codigo-hist" style="color: var(--text-muted);">---</span></li>';
                 return;
             }
+
+            historicoAnterior.forEach(item => {
+                const li = document.createElement('li');
+                const classeTipo = item.codigo.startsWith('P-') ? 'prioritativo' : 'geral';
+                li.className = `item-historico ${classeTipo}`;
+                li.innerHTML = `
+                    <div class="info-hist">
+                        <span class="codigo-hist">${item.codigo}</span>
+                        <span class="mesa-hist">${item.mesa || ''}</span>
+                    </div>
+                    <span class="hora-hist">${item.hora}</span>
+                `;
+                ul.appendChild(li);
+            });
         }
 
-        function verificarNovasChamadas() {
-            validarEfetuarLimpezaDiaria();
-            const dadosGuardados = localStorage.getItem(CHAVE_STORAGE);
-            if (!dadosGuardados) return;
+        // Listener em Tempo Real do Firebase
+        docRefEstado.onSnapshot((doc) => {
+            if (!doc.exists) return;
+            const estado = doc.data();
 
-            const estado = JSON.parse(dadosGuardados);
+            // Comando remoto para forçar fullscreen vindo do painel
+            if (estado.comandoFullscreenTV && estado.comandoFullscreenTV !== ultimoComandoFullscreen) {
+                ultimoComandoFullscreen = estado.comandoFullscreenTV;
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => console.log(err));
+                }
+            }
+
             if (!estado.chamadas || estado.chamadas.length === 0) {
                 document.getElementById('senhaAtual').innerText = "---";
                 document.getElementById('mesaAtual').innerText = "MESA ---";
@@ -575,7 +578,7 @@
             }
 
             const maisRecente = estado.chamadas[estado.chamadas.length - 1];
-            const idUnico = `${maisRecente.codigo}_${maisRecente.hora}`;
+            const idUnico = `${maisRecente.codigo}_${maisRecente.hora}_${maisRecente.mesa}`;
 
             if (idUnico !== ultimaSenhaConhecida) {
                 ultimaSenhaConhecida = idUnico;
@@ -604,44 +607,8 @@
                 falarSenha(maisRecente.codigo, maisRecente.mesa || "Mesa");
             }
             atualizarHistoricoLateral(estado.chamadas);
-        }
-
-        function atualizarHistoricoLateral(chamadas) {
-            const ul = document.getElementById('listaHistorico');
-            ul.innerHTML = '';
-            // Limitado a 6 itens para preencher perfeitamente a altura sem scroll nem cortes
-            const historicoAnterior = [...chamadas].reverse().slice(1, 7);
-
-            if (historicoAnterior.length === 0) {
-                ul.innerHTML = '<li class="item-historico"><span class="codigo-hist" style="color: var(--text-muted);">---</span></li>';
-                return;
-            }
-
-            historicoAnterior.forEach(item => {
-                const li = document.createElement('li');
-                const classeTipo = item.codigo.startsWith('P-') ? 'prioritativo' : 'geral';
-                li.className = `item-historico ${classeTipo}`;
-                li.innerHTML = `
-                    <div class="info-hist">
-                        <span class="codigo-hist">${item.codigo}</span>
-                        <span class="mesa-hist">${item.mesa || ''}</span>
-                    </div>
-                    <span class="hora-hist">${item.hora}</span>
-                `;
-                ul.appendChild(li);
-            });
-        }
-
-        canalSenhas.onmessage = (e) => {
-            gerirMensagensCanal(e);
-            verificarNovasChamadas();
-        };
-
-        window.addEventListener('storage', (e) => {
-            if (e.key === CHAVE_MUDO_GLOBAL && estaSistemaMudo() && 'speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
-            }
-            verificarNovasChamadas();
+        }, (error) => {
+            console.error("Erro no Listener da TV:", error);
         });
 
         window.onclick = function() { 
@@ -651,8 +618,6 @@
 
         window.onload = () => {
             inicializarTema();
-            validarEfetuarLimpezaDiaria();
-            verificarNovasChamadas();
             carregarClima();
         };
     </script>
