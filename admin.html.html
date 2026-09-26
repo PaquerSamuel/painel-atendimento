@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Estatísticas - Sistema de Senhas</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-primary: #090d16;
+            --bg-secondary: #131d31;
+            --bg-card: #1a2642;
+            --border-color: #273759;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --color-geral: #0ea5e9;
+            --color-prioritario: #ef4444;
+            --color-success: #22c55e;
+            --color-warning: #f59e0b;
+            --color-error: #f43f5e;
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f1f5f9;
+            --bg-secondary: #ffffff;
+            --bg-card: #e2e8f0;
+            --border-color: #cbd5e1;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --color-geral: #0284c7;
+            --color-prioritario: #dc2626;
+            --color-success: #16a34a;
+            --color-warning: #d97706;
+            --color-error: #e11d48;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            padding: 15px 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header h1 { font-size: 1.3rem; text-transform: uppercase; font-weight: 700; }
+
+        .header-controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+        .top-btn {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+
+        .top-btn:hover { filter: brightness(1.1); border-color: var(--color-geral); }
+        .btn-success { border-color: var(--color-success); color: var(--color-success); }
+        .btn-danger { border-color: var(--color-error); color: var(--color-error); }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .card-stat {
+            background-color: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .card-stat span { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+        .card-stat h2 { font-size: 1.8rem; font-weight: 800; }
+        .card-stat.geral h2 { color: var(--color-geral); }
+        .card-stat.prioritario h2 { color: var(--color-prioritario); }
+        .card-stat.success h2 { color: var(--color-success); }
+        .card-stat.warning h2 { color: var(--color-warning); }
+        .card-stat.tempo h2 { color: var(--color-geral); }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 1024px) { .dashboard-grid { grid-template-columns: 1fr; } }
+
+        .panel-box {
+            background-color: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-height: 320px;
+        }
+
+        .panel-box h3 {
+            font-size: 0.95rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        .chart-container { position: relative; flex: 1; width: 100%; min-height: 220px; display: flex; justify-content: center; align-items: center; }
+
+        .table-responsive { overflow-x: auto; max-height: 250px; overflow-y: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left; }
+        th, td { padding: 10px; border-bottom: 1px solid var(--border-color); }
+        th { background-color: var(--bg-card); color: var(--text-muted); font-size: 0.75rem; position: sticky; top: 0; }
+        td { color: var(--text-main); font-family: monospace; }
+        td.texto-normal { font-family: inherit; }
+
+        .badge { padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .badge-concluida { background: rgba(34, 197, 94, 0.15); color: var(--color-success); }
+        .badge-cancelada { background: rgba(244, 63, 94, 0.15); color: var(--color-error); }
+        .badge-pendente { background: rgba(245, 158, 11, 0.15); color: var(--color-warning); }
+
+        .footer-info { text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: auto; padding: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>📊 Painel de Estatísticas</h1>
+        <div class="header-controls">
+            <button class="top-btn" onclick="atualizarDados()">🔄 Atualizar</button>
+            <button class="top-btn btn-success" onclick="exportarCSVRelatorio('Total')">📥 Baixar Total</button>
+            <button class="top-btn btn-success" onclick="exportarCSVRelatorio('Mesa 1')">📥 Baixar Mesa 1</button>
+            <button class="top-btn btn-success" onclick="exportarCSVRelatorio('Mesa 2')">📥 Baixar Mesa 2</button>
+            <button class="top-btn btn-success" onclick="exportarCSVRelatorio('Mesa 3')">📥 Baixar Mesa 3</button>
+            <button class="top-btn" onclick="alternarTema()"><span id="themeIcon">🌙</span></button>
+            <button class="top-btn btn-danger" onclick="reiniciarSistema()">🗑️ Reiniciar</button>
+        </div>
+    </div>
+
+    <div class="cards-grid">
+        <div class="card-stat geral"><span>Gerais (A)</span><h2 id="sGer">0</h2></div>
+        <div class="card-stat prioritario"><span>Prioritárias (P)</span><h2 id="sPrio">0</h2></div>
+        <div class="card-stat success"><span>Concluídos</span><h2 id="sConc">0</h2></div>
+        <div class="card-stat warning"><span>Ausentes</span><h2 id="sAus">0</h2></div>
+        <div class="card-stat tempo"><span>Tempo Médio</span><h2 id="sMedio">0m 0s</h2></div>
+        <div class="card-stat"><span>Total</span><h2 id="sTot">0</h2></div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="panel-box">
+            <h3>Distribuição de Atendimento</h3>
+            <div class="chart-container"><canvas id="graficoPizza"></canvas></div>
+        </div>
+        <div class="panel-box">
+            <h3>Estado Geral das Senhas</h3>
+            <div class="chart-container"><canvas id="graficoBarras"></canvas></div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="panel-box">
+            <h3>Desempenho por Mesa &bull; Individual e Total</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>Mesa</th><th>Total</th><th>Concluídas</th><th>Ausentes</th></tr></thead>
+                    <tbody id="tabelaMesas"><tr><td colspan="4" style="text-align:center; color:var(--text-muted);">A carregar...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="panel-box">
+            <h3>Últimas Ações &bull; Tempos de Atendimento</h3>
+            <div class="table-responsive">
+                <table>
+                    <thead><tr><th>Hora</th><th>Senha</th><th>Mesa</th><th>Estado</th><th>Duração</th></tr></thead>
+                    <tbody id="tabelaHistorico"><tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Sem atividades.</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-info">Sistema de Gestão de Filas &bull; Tempo Real Ativado</div>
+
+    <script>
+        const CHAVE = 'sistema_senhas_dados';
+        const canal = new BroadcastChannel('canal_senhas_atualizacoes');
+        let chartP = null, chartB = null;
+
+        function alternarTema() {
+            const atual = document.documentElement.getAttribute('data-theme');
+            const novo = atual === 'light' ? 'dark' : 'light';
+            if (novo === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                document.getElementById('themeIcon').innerText = '☀️';
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                document.getElementById('themeIcon').innerText = '🌙';
+            }
+            localStorage.setItem('tema_admin', novo);
+            atualizarDados();
+        }
+
+        if (localStorage.getItem('tema_admin') === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+            document.getElementById('themeIcon').innerText = '☀️';
+        }
+
+        function lerDados() {
+            try {
+                const d = localStorage.getItem(CHAVE);
+                return d ? JSON.parse(d) : null;
+            } catch (e) { return null; }
+        }
+
+        function normalizarNomeMesa(nomeMesa) {
+            if (!nomeMesa) return 'Geral';
+            let limpo = nomeMesa.toString().trim().toUpperCase();
+            if (limpo.includes('1') || limpo.includes('UM')) return 'Mesa 1';
+            if (limpo.includes('2') || limpo.includes('DOIS')) return 'Mesa 2';
+            if (limpo.includes('3') || limpo.includes('TRÊS') || limpo.includes('TRES')) return 'Mesa 3';
+            return nomeMesa;
+        }
+
+        function formatarTempo(segundos) {
+            if (!segundos || isNaN(segundos) || segundos < 0) return '0m 0s';
+            let m = Math.floor(segundos / 60);
+            let s = Math.floor(segundos % 60);
+            return `${m}m ${s}s`;
+        }
+
+        function processarEstatisticas(est) {
+            let g = est?.contadores?.A || 0;
+            let p = est?.contadores?.P || 0;
+            let conc = 0, aus = 0;
+            let tempoTotalSegundos = 0;
+            let atendimentosComTempo = 0;
+
+            const mesasObj = {
+                'Mesa 1': { tot: 0, conc: 0, aus: 0 },
+                'Mesa 2': { tot: 0, conc: 0, aus: 0 },
+                'Mesa 3': { tot: 0, conc: 0, aus: 0 }
+            };
+
+            if (est && Array.isArray(est.chamadas)) {
+                est.chamadas.forEach(ch => {
+                    if (ch.concluida) {
+                        conc++;
+                        if (ch.inicio && ch.fim) {
+                            let duracaoSeg = (new Date(ch.fim) - new Date(ch.inicio)) / 1000;
+                            if (duracaoSeg > 0) {
+                                tempoTotalSegundos += duracaoSeg;
+                                atendimentosComTempo++;
+                            }
+                        }
+                    }
+                    if (ch.cancelada) aus++;
+                    
+                    const m = normalizarNomeMesa(ch.mesa);
+                    if (!mesasObj[m]) {
+                        mesasObj[m] = { tot: 0, conc: 0, aus: 0 };
+                    }
+                    mesasObj[m].tot++;
+                    if (ch.concluida) mesasObj[m].conc++;
+                    if (ch.cancelada) mesasObj[m].aus++;
+                });
+            }
+
+            let mediaGeralSeg = atendimentosComTempo > 0 ? tempoTotalSegundos / atendimentosComTempo : 0;
+            return { g, p, conc, aus, mediaGeralSeg, mesasObj };
+        }
+
+        function atualizarDados() {
+            const est = lerDados();
+            if (!est) {
+                document.getElementById('sGer').innerText = '0';
+                document.getElementById('sPrio').innerText = '0';
+                document.getElementById('sConc').innerText = '0';
+                document.getElementById('sAus').innerText = '0';
+                document.getElementById('sMedio').innerText = '0m 0s';
+                document.getElementById('sTot').innerText = '0';
+                return;
+            }
+
+            const { g, p, conc, aus, mediaGeralSeg, mesasObj } = processarEstatisticas(est);
+
+            document.getElementById('sGer').innerText = g;
+            document.getElementById('sPrio').innerText = p;
+            document.getElementById('sConc').innerText = conc;
+            document.getElementById('sAus').innerText = aus;
+            document.getElementById('sMedio').innerText = formatarTempo(mediaGeralSeg);
+            document.getElementById('sTot').innerText = g + p;
+
+            renderMesas(mesasObj);
+            renderHistorico(est.chamadas || []);
+            renderGraficos(g, p, conc, aus);
+        }
+
+        function renderMesas(mesas) {
+            const tb = document.getElementById('tabelaMesas');
+            tb.innerHTML = '';
+            const chaves = Object.keys(mesas);
+            if (chaves.length === 0) {
+                tb.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">Nenhum dado de mesa.</td></tr>';
+                return;
+            }
+
+            let somaTot = 0, somaConc = 0, somaAus = 0;
+
+            chaves.forEach(m => {
+                let t = mesas[m];
+                somaTot += t.tot;
+                somaConc += t.conc;
+                somaAus += t.aus;
+                tb.innerHTML += `<tr><td class="texto-normal" style="font-weight:700; color:var(--color-geral);">${m}</td><td>${t.tot}</td><td style="color:var(--color-success);">${t.conc}</td><td style="color:var(--color-error);">${t.aus}</td></tr>`;
+            });
+
+            tb.innerHTML += `<tr style="border-top: 2px solid var(--border-color); font-weight: bold;"><td class="texto-normal" style="color:var(--text-main);">TOTAL GERAL</td><td>${somaTot}</td><td style="color:var(--color-success);">${somaConc}</td><td style="color:var(--color-error);">${somaAus}</td></tr>`;
+        }
+
+        function renderHistorico(chamadas) {
+            const tb = document.getElementById('tabelaHistorico');
+            tb.innerHTML = '';
+            if (chamadas.length === 0) {
+                tb.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">Sem registos recentes.</td></tr>';
+                return;
+            }
+            const ultimas = [...chamadas].reverse().slice(0, 15);
+            ultimas.forEach(ch => {
+                let bCl = 'badge-pendente', bTx = 'Em Andamento';
+                let duracaoStr = '-';
+
+                if (ch.concluida) { 
+                    bCl = 'badge-concluida'; 
+                    bTx = 'Concluída';
+                    if (ch.inicio && ch.fim) {
+                        let seg = (new Date(ch.fim) - new Date(ch.inicio)) / 1000;
+                        if (seg > 0) duracaoStr = formatarTempo(seg);
+                    }
+                } else if (ch.cancelada) { 
+                    bCl = 'badge-cancelada'; 
+                    bTx = 'Ausente'; 
+                }
+                
+                let mesaPadrao = normalizarNomeMesa(ch.mesa);
+                tb.innerHTML += `<tr>
+                    <td>${ch.hora}</td>
+                    <td style="font-weight:bold; color:${ch.codigo.startsWith('P-')?'var(--color-prioritario)':'var(--color-geral)'};">${ch.codigo}</td>
+                    <td class="texto-normal">${mesaPadrao}</td>
+                    <td><span class="badge ${bCl}">${bTx}</span></td>
+                    <td>${duracaoStr}</td>
+                </tr>`;
+            });
+        }
+
+        function renderGraficos(g, p, conc, aus) {
+            const isL = document.documentElement.getAttribute('data-theme') === 'light';
+            const tCol = isL ? '#0f172a' : '#f8fafc';
+
+            const ctxP = document.getElementById('graficoPizza').getContext('2d');
+            if (chartP) chartP.destroy();
+            chartP = new Chart(ctxP, {
+                type: 'doughnut',
+                data: { labels: ['Geral', 'Prioritário'], datasets: [{ data: [g, p], backgroundColor: ['#0ea5e9', '#ef4444'], borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: tCol } } } }
+            });
+
+            const ctxB = document.getElementById('graficoBarras').getContext('2d');
+            if (chartB) chartB.destroy();
+            chartB = new Chart(ctxB, {
+                type: 'bar',
+                data: { labels: ['Concluídos', 'Ausentes', 'Gerais', 'Prioritárias'], datasets: [{ data: [conc, aus, g, p], backgroundColor: ['#22c55e', '#f43f5e', '#0ea5e9', '#ef4444'], borderRadius: 4 }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: tCol }, grid: { display: false } }, y: { ticks: { color: tCol, precision: 0 }, grid: { color: isL ? '#cbd5e1' : '#273759' } } } }
+            });
+        }
+
+        function exportarCSVRelatorio(tipoFiltro) {
+            const est = lerDados();
+            if (!est || !est.chamadas || est.chamadas.length === 0) {
+                alert("Sem dados para exportar.");
+                return;
+            }
+
+            let chamadasFiltradas = est.chamadas;
+            let nomeSufixo = "total";
+
+            if (tipoFiltro !== 'Total') {
+                chamadasFiltradas = est.chamadas.filter(ch => normalizarNomeMesa(ch.mesa) === tipoFiltro);
+                nomeSufixo = tipoFiltro.toLowerCase().replace(' ', '_');
+                if (chamadasFiltradas.length === 0) {
+                    alert(`Não existem registos de atendimento para a ${tipoFiltro}.`);
+                    return;
+                }
+            }
+
+            let csv = "\uFEFFHora;Senha;Tipo;Mesa;Estado;Duracao\n";
+            chamadasFiltradas.forEach(ch => {
+                let st = ch.concluida ? "Concluída" : (ch.cancelada ? "Ausente" : "Em Andamento");
+                let tp = ch.codigo.startsWith('P-') ? "Prioritário" : "Geral";
+                let mesaPadrao = normalizarNomeMesa(ch.mesa);
+                let duracaoStr = "-";
+                if (ch.concluida && ch.inicio && ch.fim) {
+                    let seg = (new Date(ch.fim) - new Date(ch.inicio)) / 1000;
+                    if (seg > 0) duracaoStr = formatarTempo(seg);
+                }
+                csv += `"${ch.hora}";"${ch.codigo}";"${tp}";"${mesaPadrao}";"${st}";"${duracaoStr}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `relatorio_senhas_${nomeSufixo}_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function reiniciarSistema() {
+            if (confirm("Deseja reiniciar todos os dados de hoje?")) {
+                const vazio = { contadores: { A: 0, P: 0 }, chamadas: [] };
+                localStorage.setItem(CHAVE, JSON.stringify(vazio));
+                canal.postMessage({ tipo: 'ATUALIZACAO_MESA' });
+                atualizarDados();
+                alert("Reiniciado com sucesso!");
+            }
+        }
+
+        canal.onmessage = () => atualizarDados();
+        window.addEventListener('storage', () => atualizarDados());
+        window.onload = () => atualizarDados();
+    </script>
+</body>
+</html>
