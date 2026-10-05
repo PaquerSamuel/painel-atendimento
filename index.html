@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiosque de Senhas</title>
+
+    <!-- Firebase App (Core) e Cloud Firestore SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #090d16;
+            --text-main: #f8fafc;
+            --text-desc: #94a3b8;
+            --card-bg: #131d31;
+            --card-text: #f8fafc;
+            --aviso-bg: #1a2642;
+            --aviso-border: #273759;
+            --aviso-text: #f8fafc;
+            --btn-geral-bg: linear-gradient(135deg, #0284c7, #0369a1);
+            --btn-prioritario-bg: linear-gradient(135deg, #dc2626, #b91c1c);
+            --senha-geral-color: #0ea5e9;
+            --senha-prioritario-color: #ef4444;
+            --anim-geral-bg: #17233f;
+            --anim-prioritario-bg: #3f1a1a;
+            --theme-btn-bg: #1a2642;
+            --theme-btn-border: #273759;
+            --theme-btn-text: #f8fafc;
+            --flag-border: #273759;
+            --bg-image: none;
+            --bg-overlay: rgba(9, 13, 22, 0.65);
+        }
+
+        [data-theme="light"] {
+            --bg-color: #f1f5f9;
+            --text-main: #0f172a;
+            --text-desc: #64748b;
+            --card-bg: #ffffff;
+            --card-text: #0f172a;
+            --aviso-bg: #fef3c7;
+            --aviso-border: #fde68a;
+            --aviso-text: #78350f;
+            --btn-geral-bg: linear-gradient(135deg, #0284c7, #0369a1);
+            --btn-prioritario-bg: linear-gradient(135deg, #dc2626, #b91c1c);
+            --senha-geral-color: #0284c7;
+            --senha-prioritario-color: #dc2626;
+            --anim-geral-bg: #e0f2fe;
+            --anim-prioritario-bg: #fee2e2;
+            --theme-btn-bg: #ffffff;
+            --theme-btn-border: #cbd5e1;
+            --theme-btn-text: #0f172a;
+            --flag-border: #cbd5e1;
+            --bg-overlay: rgba(241, 245, 249, 0.75);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+            transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: var(--bg-image);
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-overlay);
+            z-index: -1;
+            transition: background-color 0.4s ease;
+        }
+
+        .top-controls {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            z-index: 10;
+        }
+
+        .top-btn {
+            background-color: var(--theme-btn-bg);
+            border: 1px solid var(--theme-btn-border);
+            color: var(--theme-btn-text);
+            padding: 10px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            outline: none;
+        }
+
+        .top-btn:hover {
+            border-color: var(--senha-geral-color);
+        }
+
+        .top-btn:active {
+            transform: scale(0.95);
+        }
+
+        .fullscreen-btn {
+            padding: 10px 14px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .header h1 {
+            color: var(--text-main);
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+
+        .header p {
+            color: var(--text-desc);
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            width: 100%;
+            max-width: 850px;
+        }
+
+        .btn-senha {
+            border: none;
+            border-radius: 20px;
+            padding: 45px 25px;
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            letter-spacing: 1px;
+        }
+
+        .btn-senha:active:not(:disabled) {
+            transform: scale(0.96);
+        }
+
+        .btn-senha:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-geral {
+            background: var(--btn-geral-bg);
+            border: 2px solid #38bdf8;
+        }
+
+        .btn-prioritario {
+            background: var(--btn-prioritario-bg);
+            border: 2px solid #f87171;
+        }
+
+        .display-ultimo {
+            margin-top: 40px;
+            background: var(--card-bg);
+            border: 2px solid var(--aviso-border);
+            padding: 30px 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+            text-align: center;
+            max-width: 650px;
+            width: 100%;
+        }
+
+        .display-ultimo h2 {
+            font-size: 1.2rem;
+            color: var(--text-desc);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 700;
+        }
+
+        .display-ultimo .senha-gerada {
+            font-size: 5rem;
+            font-weight: 900;
+            color: var(--senha-geral-color);
+            letter-spacing: 3px;
+            margin: 10px 0;
+            line-height: 1;
+        }
+
+        .aviso-foto {
+            margin-top: 20px;
+            font-size: 1.1rem;
+            color: var(--aviso-text);
+            background-color: var(--aviso-bg);
+            border: 1px solid var(--aviso-border);
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.75);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border: 2px solid var(--aviso-border);
+            border-radius: 24px;
+            padding: 35px;
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            animation: modalFadeIn 0.3s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        @keyframes modalFadeIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal-content h3 {
+            color: var(--text-main);
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            font-weight: 800;
+        }
+
+        .opcoes-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .btn-opcao {
+            background: var(--theme-btn-bg);
+            border: 2px solid var(--theme-btn-border);
+            color: var(--theme-btn-text);
+            padding: 20px;
+            border-radius: 16px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.2s;
+        }
+
+        .btn-opcao:hover {
+            border-color: var(--senha-geral-color);
+            background-color: var(--anim-geral-bg);
+            transform: translateY(-2px);
+        }
+
+        .btn-opcao:active {
+            transform: scale(0.98);
+        }
+
+        .input-virtual {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.4rem;
+            text-align: center;
+            border-radius: 12px;
+            border: 2px solid var(--aviso-border);
+            background: var(--bg-color);
+            color: var(--text-main);
+            margin-bottom: 20px;
+            outline: none;
+        }
+
+        .teclado-virtual-num {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .teclado-virtual-qwerty {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .teclado-linha {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .tecla {
+            background: var(--theme-btn-bg);
+            border: 1px solid var(--theme-btn-border);
+            color: var(--theme-btn-text);
+            padding: 14px 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            flex: 1;
+            min-width: 0;
+        }
+
+        .tecla-larga {
+            flex: 1.5;
+            font-size: 1rem;
+        }
+
+        .tecla:active {
+            background-color: var(--senha-geral-color);
+            color: white;
+            transform: scale(0.95);
+        }
+
+        .teclado-acoes {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-voltar-modal, .btn-confirmar-modal {
+            flex: 1;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .btn-voltar-modal {
+            background: var(--theme-btn-bg);
+            border: 1px solid var(--theme-btn-border);
+            color: var(--theme-btn-text);
+        }
+
+        .language-flags {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+            z-index: 10;
+        }
+
+        .flag-btn {
+            background-color: var(--card-bg);
+            border: 2px solid var(--flag-border);
+            border-radius: 10px;
+            padding: 6px 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            transition: transform 0.2s, border-color 0.2s, background-color 0.2s;
+        }
+
+        .flag-btn img {
+            width: 36px;
+            height: 24px;
+            object-fit: cover;
+            border-radius: 4px;
+            display: block;
+        }
+
+        .flag-btn:hover {
+            transform: scale(1.08);
+            border-color: var(--senha-geral-color);
+        }
+
+        .flag-btn.active {
+            border-color: var(--senha-geral-color);
+            background-color: var(--anim-geral-bg);
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.3);
+        }
+
+        .animar-geral {
+            animation: pulse-azul 0.8s ease-in-out infinite;
+        }
+
+        .animar-prioritario {
+            animation: pulse-vermelho 0.8s ease-in-out infinite;
+        }
+
+        @keyframes pulse-azul {
+            0% { transform: scale(1); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); background-color: var(--card-bg); }
+            40% { transform: scale(1.03); box-shadow: 0 0 30px rgba(14, 165, 233, 0.4); background-color: var(--anim-geral-bg); }
+            100% { transform: scale(1); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); background-color: var(--card-bg); }
+        }
+
+        @keyframes pulse-vermelho {
+            0% { transform: scale(1); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); background-color: var(--card-bg); }
+            40% { transform: scale(1.03); box-shadow: 0 0 30px rgba(239, 68, 68, 0.4); background-color: var(--anim-prioritario-bg); }
+            100% { transform: scale(1); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15); background-color: var(--card-bg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-controls">
+        <button class="top-btn" onclick="abrirModalWallpaper()" title="Personalizar Papel de Parede">
+            <span>🖼️</span> <span id="txtBtnWallpaper">Fundo</span>
+        </button>
+        <button class="top-btn" id="btnThemeToggle" onclick="alternarTema()">
+            <span id="themeIcon">⚫</span> <span id="themeText">Modo Escuro</span>
+        </button>
+        <button class="top-btn fullscreen-btn" id="btnFullscreen" onclick="alternarFullscreen()" title="Ecrã Cheio">
+            <span id="fullscreenIcon">⛶</span>
+        </button>
+    </div>
+
+    <div class="header">
+        <h1 id="txtTituloHeader">Retire a sua Senha</h1>
+        <p id="txtSubHeader">Selecione a opção desejada para atendimento</p>
+    </div>
+
+    <div class="container">
+        <button id="btnGeral" class="btn-senha btn-geral" onclick="abrirOpcoesEntrega('A')">
+            <span id="txtBtnGeral">Atendimento Geral</span>
+        </button>
+
+        <button id="btnPrioritario" class="btn-senha btn-prioritario" onclick="abrirOpcoesEntrega('P')">
+            <span id="txtBtnPrioritario">Prioritário</span>
+        </button>
+    </div>
+
+    <div id="boxDisplay" class="display-ultimo">
+        <h2 id="tituloDisplay">A sua Senha é:</h2>
+        <div id="ultimaSenha" class="senha-gerada">---</div>
+        <div id="avisoRodape" class="aviso-foto">
+            📷 Por favor, memorize a sua senha ou tire uma foto com o telemóvel para não a esquecer.
+        </div>
+    </div>
+
+    <div id="modalContainer" class="modal-overlay" style="display: none;"></div>
+
+    <div class="language-flags">
+        <button class="flag-btn" id="flag-pt" onclick="mudarIdioma('pt')" title="Português">
+            <img src="https://flagcdn.com/w80/pt.png" alt="Portugal">
+        </button>
+        <button class="flag-btn" id="flag-en" onclick="mudarIdioma('en')" title="English">
+            <img src="https://flagcdn.com/w80/gb.png" alt="Reino Unido">
+        </button>
+        <button class="flag-btn" id="flag-es" onclick="mudarIdioma('es')" title="Español">
+            <img src="https://flagcdn.com/w80/es.png" alt="Espanha">
+        </button>
+        <button class="flag-btn" id="flag-fr" onclick="mudarIdioma('fr')" title="Français">
+            <img src="https://flagcdn.com/w80/fr.png" alt="França">
+        </button>
+        <button class="flag-btn" id="flag-it" onclick="mudarIdioma('it')" title="Italiano">
+            <img src="https://flagcdn.com/w80/it.png" alt="Itália">
+        </button>
+        <button class="flag-btn" id="flag-de" onclick="mudarIdioma('de')" title="Deutsch">
+            <img src="https://flagcdn.com/w80/de.png" alt="Alemanha">
+        </button>
+        <button class="flag-btn" id="flag-ja" onclick="mudarIdioma('ja')" title="日本語">
+            <img src="https://flagcdn.com/w80/jp.png" alt="Japão">
+        </button>
+    </div>
+
+    <script>
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCoyDbE3uycXcua4nor94xsPJhZ5IBFTzY",
+            authDomain: "painel-atendimento-62b5f.firebaseapp.com",
+            projectId: "painel-atendimento-62b5f",
+            storageBucket: "painel-atendimento-62b5f.appspot.com",
+            messagingSenderId: "14880228149",
+            appId: "1:14880228149:web:30dac7c8ed042e128027c"
+        };
+
+        // CHAVE DA RESEND (Altere aqui para a sua chave real)
+        const RESEND_API_KEY = "re_SUA_CHAVE_DA_RESEND_AQUI";
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+        const docRefEstado = db.collection("sistema_senhas").doc("estado_global");
+
+        const CHAVE_TEMA = 'sistema_senhas_tema_kiosk';
+        const CHAVE_IDIOMA = 'sistema_senhas_idioma';
+        const CHAVE_MUDO_GLOBAL = 'sistema_senhas_mudo_global';
+        const CHAVE_WALLPAPER = 'sistema_senhas_wallpaper';
+        let emProcessamento = false;
+
+        const traducoes = {
+            pt: {
+                themeDark: "Modo Escuro", themeLight: "Modo Claro", wallpaperText: "Fundo",
+                tituloHeader: "Retire a sua Senha", subHeader: "Selecione a opção desejada para atendimento",
+                btnGeral: "Atendimento Geral", btnPrioritario: "Prioritário",
+                tituloDisplay: "A sua Senha é:",
+                tituloUltima: "Última senha retirada é:",
+                avisoRodape: "📷 Por favor, memorize a sua senha ou tire uma foto com o telemóvel para não a esquecer.",
+                nomeGeral: "Atendimento Geral", nomePrioritario: "Prioritário",
+                escolhaOpcao: "Como deseja receber a sua senha?",
+                opTela: "🖥 Gerar no Ecrã",
+                opSms: "📱 Enviar por SMS",
+                opEmail: "📧 Enviar por E-mail",
+                digiteSms: "Digite o Número de Telemóvel:",
+                digiteEmail: "Digite o Endereço de E-mail:",
+                voltar: "Voltar", confirmar: "Confirmar e Gerar",
+                sucessoEnvio: "Senha enviada com sucesso!",
+                modalWallpaperTitulo: "Personalizar Papel de Parede",
+                btnCarregarPC: "📁 Carregar do Computador",
+                btnRemoverWallpaper: "Remover Fundo"
+            },
+            en: {
+                themeDark: "Dark Mode", themeLight: "Light Mode", wallpaperText: "Background",
+                tituloHeader: "Take Your Ticket", subHeader: "Select your desired service option",
+                btnGeral: "General Service", btnPrioritario: "Priority",
+                tituloDisplay: "Your Ticket Is:",
+                tituloUltima: "Last ticket taken is:",
+                avisoRodape: "📷 Please memorize your ticket number or take a photo with your phone.",
+                nomeGeral: "General Service", nomePrioritario: "Priority",
+                escolhaOpcao: "How would you like to receive your ticket?",
+                opTela: "🖥️ Generate on Screen",
+                opSms: "📱 Send via SMS",
+                opEmail: "📧 Send via Email",
+                digiteSms: "Enter Mobile Number:",
+                digiteEmail: "Enter Email Address:",
+                voltar: "Back", confirmar: "Confirm & Generate",
+                sucessoEnvio: "Ticket sent successfully!",
+                modalWallpaperTitulo: "Customize Wallpaper",
+                btnCarregarPC: "📁 Upload from Computer",
+                btnRemoverWallpaper: "Remove Background"
+            },
+            es: {
+                themeDark: "Modo Oscuro", themeLight: "Modo Claro", wallpaperText: "Fondo",
+                tituloHeader: "Retire su Turno", subHeader: "Seleccione la opción deseada para la atención",
+                btnGeral: "Atención General", btnPrioritario: "Prioritario",
+                tituloDisplay: "Su Turno Es:",
+                tituloUltima: "Último turno retirado es:",
+                avisoRodape: "📷 Por favor, memorice su turno o tome una foto con el móvil para no olvidarlo.",
+                nomeGeral: "Atención General", nomePrioritario: "Prioritario",
+                escolhaOpcao: "¿Cómo desea recibir su turno?",
+                opTela: "🖥 Generar en Pantalla",
+                opSms: "📱 Enviar por SMS",
+                opEmail: "📧 Enviar por Correo",
+                digiteSms: "Ingrese el Número de Móvil:",
+                digiteEmail: "Ingrese el Correo Electrónico:",
+                voltar: "Volver", confirmar: "Confirmar y Generar",
+                sucessoEnvio: "¡Turno enviado com éxito!",
+                modalWallpaperTitulo: "Personalizar Fondo de Pantalla",
+                btnCarregarPC: "📁 Cargar desde Computadora",
+                btnRemoverWallpaper: "Quitar Fondo"
+            },
+            fr: {
+                themeDark: "Mode Sombre", themeLight: "Mode Clair", wallpaperText: "Fond",
+                tituloHeader: "Prenez Votre Ticket", subHeader: "Sélectionnez l'option de service souhaitée",
+                btnGeral: "Service Général", btnPrioritario: "Prioritaire",
+                tituloDisplay: "Votre Ticket Est:",
+                tituloUltima: "Dernier ticket pris est:",
+                avisoRodape: "📷 Veuillez mémoriser votre numéro de ticket ou prendre une photo avec votre téléphone.",
+                nomeGeral: "Service Général", nomePrioritaire: "Prioritaire",
+                escolhaOpcao: "Comment souhaitez-vous recevoir votre ticket ?",
+                opTela: "🖥️️ Générer à l'écran",
+                opSms: "📱 Envoyer par SMS",
+                opEmail: "📧 Envoyer par E-mail",
+                digiteSms: "Entrez le numéro de mobile :",
+                digiteEmail: "Entrez l'adresse e-mail :",
+                voltar: "Retour", confirmar: "Confirmer et Générer",
+                sucessoEnvio: "Ticket envoyé avec succès !",
+                modalWallpaperTitulo: "Personnaliser le Fond d'Écran",
+                btnCarregarPC: "📁 Télécharger de l'ordinateur",
+                btnRemoverWallpaper: "Supprimer le fond"
+            },
+            it: {
+                themeDark: "Modalità Scura", themeLight: "Modalità Chiara", wallpaperText: "Sfondo",
+                tituloHeader: "Prendi il tuo Biglietto", subHeader: "Seleziona l'opzione di servizio desiderata",
+                btnGeral: "Servizio Generale", btnPrioritario: "Prioritario",
+                tituloDisplay: "Il tuo Biglietto è:",
+                tituloUltima: "Ultimo biglietto preso è:",
+                avisoRodape: "📷 Si prega di memorizzare il numero del biglietto o scattare una foto con il cellulare.",
+                nomeGeral: "Servizio Generale", nomePrioritario: "Prioritario",
+                escolhaOpcao: "Come desideri ricevere il tuo biglietto?",
+                opTela: "🖥️ Genera sullo Schermo",
+                opSms: "📱 Invia via SMS",
+                opEmail: "📧 Invia via E-mail",
+                digiteSms: "Inserisci il numero di cellulare:",
+                digiteEmail: "Inserisci l'indirizzo e-mail:",
+                voltar: "Indietro", confirmar: "Conferma e Genera",
+                sucessoEnvio: "Biglietto inviato con successo!",
+                modalWallpaperTitulo: "Personalizza Sfondo",
+                btnCarregarPC: "📁 Carica dal Computer",
+                btnRemoverWallpaper: "Rimuovi Sfondo"
+            },
+            de: {
+                themeDark: "Dunkler Modus", themeLight: "Heller Modus", wallpaperText: "Hintergrund",
+                tituloHeader: "Ziehen Sie Ihr Ticket", subHeader: "Wählen Sie die gewünschte Serviceoption",
+                btnGeral: "Allgemeiner Service", btnPrioritario: "Priorität",
+                tituloDisplay: "Ihr Ticket ist:",
+                tituloUltima: "Letztes gezogenes Ticket ist:",
+                avisoRodape: "📷 Bitte merken Sie sich Ihre Ticketnummer oder machen Sie ein Foto mit dem Handy.",
+                nomeGeral: "Allgemeiner Service", nomePrioritario: "Priorität",
+                escolhaOpcao: "Wie möchten Sie Ihr Ticket erhalten?",
+                opTela: "🖥 Auf dem Bildschirm anzeigen",
+                opSms: "📱 Per SMS senden",
+                opEmail: "📧 Per E-Mail senden",
+                digiteSms: "Handynummer eingeben:",
+                digiteEmail: "E-Mail-Adresse eingeben:",
+                voltar: "Zurück", confirmar: "Bestätigen & Generieren",
+                sucessoEnvio: "Ticket erfolgreich gesendet!",
+                modalWallpaperTitulo: "Hintergrundbild anpassen",
+                btnCarregarPC: "📁 Vom Computer hochladen",
+                btnRemoverWallpaper: "Hintergrund entfernen"
+            },
+            ja: {
+                themeDark: "ダークモード", themeLight: "ライトモード", wallpaperText: "背景",
+                tituloHeader: "発券機", subHeader: "ご希望のサービスオプションを選択してください",
+                btnGeral: "一般窓口", btnPrioritario: "優先窓口",
+                tituloDisplay: "あなたの番号は:",
+                tituloUltima: "最後に発行された番号は:",
+                avisoRodape: "📷 番号を覚えるか、スマートフォンで写真を撮ってください。",
+                nomeGeral: "一般窓口", nomePrioritario: "優先窓口",
+                escolhaOpcao: "チケットの受け取り方法を選択してください",
+                opTela: "🖥️ 画面に表示する",
+                opSms: "📱 SMSで送信する",
+                opEmail: "📧 Eメールで送信する",
+                digiteSms: "携帯電話番号を入力してください:",
+                digiteEmail: "メールアドレスを入力してください:",
+                voltar: "戻る", confirmar: "確認して発券",
+                sucessoEnvio: "チケットが正常に送信されました！",
+                modalWallpaperTitulo: "壁紙のカスタマイズ",
+                btnCarregarPC: "📁 PCからアップロード",
+                btnRemoverWallpaper: "背景を削除"
+            }
+        };
+
+        function estaSistemaMudo() {
+            return localStorage.getItem(CHAVE_MUDO_GLOBAL) === 'true';
+        }
+
+        function alternarFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log('Erro ao tentar entrar em ecrã cheio:', err.message);
+                });
+            } else if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+
+        document.addEventListener('fullscreenchange', () => {
+            const iconeFS = document.getElementById('fullscreenIcon');
+            const btnFS = document.getElementById('btnFullscreen');
+            if (document.fullscreenElement) {
+                iconeFS.innerText = '🗗';
+                btnFS.setAttribute('title', 'Sair do Ecrã Cheio');
+            } else {
+                iconeFS.innerText = '⛶';
+                btnFS.setAttribute('title', 'Ecrã Cheio');
+            }
+        });
+
+        function inicializarIdioma() {
+            const idiomaGuardado = localStorage.getItem(CHAVE_IDIOMA) || 'pt';
+            aplicarIdioma(idiomaGuardado);
+        }
+
+        function mudarIdioma(idioma) {
+            localStorage.setItem(CHAVE_IDIOMA, idioma);
+            aplicarIdioma(idioma);
+        }
+
+        function aplicarIdioma(idioma) {
+            const t = traducoes[idioma] || traducoes['pt'];
+            document.getElementById('txtTituloHeader').innerText = t.tituloHeader;
+            document.getElementById('txtSubHeader').innerText = t.subHeader;
+            document.getElementById('txtBtnGeral').innerText = t.btnGeral;
+            document.getElementById('txtBtnPrioritario').innerText = t.btnPrioritario;
+            document.getElementById('txtBtnWallpaper').innerText = t.wallpaperText;
+            
+            const elSenha = document.getElementById('ultimaSenha');
+            if (elSenha.innerText === "---") {
+                document.getElementById('tituloDisplay').innerText = t.tituloDisplay;
+            } else {
+                document.getElementById('tituloDisplay').innerText = t.tituloUltima;
+            }
+            
+            document.getElementById('avisoRodape').innerHTML = t.avisoRodape;
+            
+            const temaAtual = document.documentElement.getAttribute('data-theme');
+            const textoTema = document.getElementById('themeText');
+            textoTema.innerText = temaAtual === 'light' ? t.themeDark : t.themeLight;
+
+            document.querySelectorAll('.flag-btn').forEach(btn => btn.classList.remove('active'));
+            const btnAtivo = document.getElementById(`flag-${idioma}`);
+            if (btnAtivo) btnAtivo.classList.add('active');
+        }
+
+        function inicializarTema() {
+            const temaGuardado = localStorage.getItem(CHAVE_TEMA) || 'dark';
+            aplicarTema(temaGuardado);
+            
+            const wallpaperGuardado = localStorage.getItem(CHAVE_WALLPAPER);
+            if (wallpaperGuardado) {
+                aplicarWallpaper(wallpaperGuardado);
+            }
+        }
+
+        function alternarTema() {
+            const temaAtual = document.documentElement.getAttribute('data-theme');
+            const novoTema = temaAtual === 'light' ? 'dark' : 'light';
+            aplicarTema(novoTema);
+            localStorage.setItem(CHAVE_TEMA, novoTema);
+        }
+
+        function aplicarTema(tema) {
+            const icone = document.getElementById('themeIcon');
+            const idiomaAtual = localStorage.getItem(CHAVE_IDIOMA) || 'pt';
+            const t = traducoes[idiomaAtual] || traducoes['pt'];
+            const texto = document.getElementById('themeText');
+            
+            if (tema === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                icone.innerText = '⚫';
+                texto.innerText = t.themeDark;
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                icone.innerText = '⚪';
+                texto.innerText = t.themeLight;
+            }
+
+            const elSenha = document.getElementById('ultimaSenha');
+            if (elSenha.innerText !== "---") {
+                const isLight = tema === 'light';
+                if (elSenha.innerText.startsWith('P-')) {
+                    elSenha.style.color = isLight ? '#dc2626' : '#ef4444';
+                } else {
+                    elSenha.style.color = isLight ? '#0284c7' : '#0ea5e9';
+                }
+            } else {
+                const isLight = tema === 'light';
+                elSenha.style.color = isLight ? '#64748b' : '#94a3b8';
+            }
+        }
+
+        function aplicarWallpaper(url) {
+            if (url) {
+                document.documentElement.style.setProperty('--bg-image', `url('${url}')`);
+                localStorage.setItem(CHAVE_WALLPAPER, url);
+            } else {
+                document.documentElement.style.setProperty('--bg-image', 'none');
+                localStorage.removeItem(CHAVE_WALLPAPER);
+            }
+        }
+
+        function abrirModalWallpaper() {
+            const idiomaAtual = localStorage.getItem(CHAVE_IDIOMA) || 'pt';
+            const t = traducoes[idiomaAtual] || traducoes['pt'];
+            const modal = document.getElementById('modalContainer');
+
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h3>${t.modalWallpaperTitulo}</h3>
+                    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+                        <button class="btn-opcao" style="font-size: 1.1rem; padding: 20px;" onclick="document.getElementById('fileInputPC').click()">${t.btnCarregarPC}</button>
+                        <input type="file" id="fileInputPC" accept="image/*" style="display: none;" onchange="carregarImagemLocal(event)">
+                        
+                        <button class="btn-opcao" style="font-size: 1.1rem; padding: 20px; border-color: #ef4444; color: #ef4444;" onclick="aplicarWallpaper(''); fecharModal();">${t.btnRemoverWallpaper}</button>
+                    </div>
+                    <button class="btn-voltar-modal" style="width: 100%;" onclick="fecharModal()">${t.voltar}</button>
+                </div>
+            `;
+        }
+
+        function carregarImagemLocal(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    aplicarWallpaper(e.target.result);
+                    fecharModal();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function tocarBip(tipo) {
+            if (estaSistemaMudo()) return;
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const audioCtx = new AudioContext();
+
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(tipo === 'P' ? 659.25 : 440, audioCtx.currentTime);
+
+                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.25);
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.25);
+            } catch (err) {
+                console.log('Áudio bloqueado ou não suportado.');
+            }
+        }
+
+        function animarVisor(pref) {
+            const box = document.getElementById('boxDisplay');
+            box.classList.remove('animar-geral', 'animar-prioritario');
+            void box.offsetWidth; 
+            box.classList.add(pref === 'A' ? 'animar-geral' : 'animar-prioritario');
+        }
+
+        function abrirOpcoesEntrega(pref) {
+            const idiomaAtual = localStorage.getItem(CHAVE_IDIOMA) || 'pt';
+            const t = traducoes[idiomaAtual] || traducoes['pt'];
+            const modal = document.getElementById('modalContainer');
+
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h3>${t.escolhaOpcao}</h3>
+                    <div class="opcoes-grid">
+                        <button class="btn-opcao" onclick="gerarSenha('${pref}', 'tela')">${t.opTela}</button>
+                        <button class="btn-opcao" onclick="abrirTecladoVirtual('${pref}', 'sms')">${t.opSms}</button>
+                        <button class="btn-opcao" onclick="abrirTecladoVirtual('${pref}', 'email')">${t.opEmail}</button>
+                    </div>
+                    <button class="btn-voltar-modal" onclick="fecharModal()">${t.voltar}</button>
+                </div>
+            `;
+        }
+
+        function abrirTecladoVirtual(pref, tipo) {
+            const idiomaAtual = localStorage.getItem(CHAVE_IDIOMA) || 'pt';
+            const t = traducoes[idiomaAtual] || traducoes['pt'];
+            const modal = document.getElementById('modalContainer');
+            const titulo = tipo === 'sms' ? t.digiteSms : t.digiteEmail;
+            const placeholder = tipo === 'sms' ? '912345678' : 'exemplo@email.com';
+
+            let tecladoHTML = '';
+
+            if (tipo === 'sms') {
+                tecladoHTML = `
+                    <div class="teclado-virtual-num">
+                        <button class="tecla" onclick="adicionarCaractere('1')">1</button>
+                        <button class="tecla" onclick="adicionarCaractere('2')">2</button>
+                        <button class="tecla" onclick="adicionarCaractere('3')">3</button>
+                        <button class="tecla" onclick="adicionarCaractere('4')">4</button>
+                        <button class="tecla" onclick="adicionarCaractere('5')">5</button>
+                        <button class="tecla" onclick="adicionarCaractere('6')">6</button>
+                        <button class="tecla" onclick="adicionarCaractere('7')">7</button>
+                        <button class="tecla" onclick="adicionarCaractere('8')">8</button>
+                        <button class="tecla" onclick="adicionarCaractere('9')">9</button>
+                        <div></div>
+                        <button class="tecla" onclick="adicionarCaractere('0')">0</button>
+                        <div></div>
+                    </div>
+                `;
+            } else {
+                tecladoHTML = `
+                    <div class="teclado-virtual-qwerty">
+                        <div class="teclado-linha">
+                            <button class="tecla" onclick="adicionarCaractere('Q')">Q</button>
+                            <button class="tecla" onclick="adicionarCaractere('W')">W</button>
+                            <button class="tecla" onclick="adicionarCaractere('E')">E</button>
+                            <button class="tecla" onclick="adicionarCaractere('R')">R</button>
+                            <button class="tecla" onclick="adicionarCaractere('T')">T</button>
+                            <button class="tecla" onclick="adicionarCaractere('Y')">Y</button>
+                            <button class="tecla" onclick="adicionarCaractere('U')">U</button>
+                            <button class="tecla" onclick="adicionarCaractere('I')">I</button>
+                            <button class="tecla" onclick="adicionarCaractere('O')">O</button>
+                            <button class="tecla" onclick="adicionarCaractere('P')">P</button>
+                        </div>
+                        <div class="teclado-linha">
+                            <button class="tecla" onclick="adicionarCaractere('A')">A</button>
+                            <button class="tecla" onclick="adicionarCaractere('S')">S</button>
+                            <button class="tecla" onclick="adicionarCaractere('D')">D</button>
+                            <button class="tecla" onclick="adicionarCaractere('F')">F</button>
+                            <button class="tecla" onclick="adicionarCaractere('G')">G</button>
+                            <button class="tecla" onclick="adicionarCaractere('H')">H</button>
+                            <button class="tecla" onclick="adicionarCaractere('J')">J</button>
+                            <button class="tecla" onclick="adicionarCaractere('K')">K</button>
+                            <button class="tecla" onclick="adicionarCaractere('L')">L</button>
+                        </div>
+                        <div class="teclado-linha">
+                            <button class="tecla" onclick="adicionarCaractere('Z')">Z</button>
+                            <button class="tecla" onclick="adicionarCaractere('X')">X</button>
+                            <button class="tecla" onclick="adicionarCaractere('C')">C</button>
+                            <button class="tecla" onclick="adicionarCaractere('V')">V</button>
+                            <button class="tecla" onclick="adicionarCaractere('B')">B</button>
+                            <button class="tecla" onclick="adicionarCaractere('N')">N</button>
+                            <button class="tecla" onclick="adicionarCaractere('M')">M</button>
+                            <button class="tecla" onclick="adicionarCaractere('@')">@</button>
+                            <button class="tecla" onclick="adicionarCaractere('.')">.</button>
+                        </div>
+                        <div class="teclado-linha">
+                            <button class="tecla tecla-larga" onclick="adicionarCaractere('0')">0</button>
+                            <button class="tecla tecla-larga" onclick="adicionarCaractere('1')">1</button>
+                            <button class="tecla tecla-larga" onclick="adicionarCaractere('2')">2</button>
+                            <button class="tecla tecla-larga" onclick="adicionarCaractere('3')">3</button>
+                            <button class="tecla tecla-larga" onclick="adicionarCaractere('4')">4</button>
+                            <button class="tecla tecla-larga" onclick="adicionarCaractere('5')">5</button>
+                            <button class="tecla tecla-larga" onclick="adicionarCaractere('6')">6</button>
+                            <button class="tecla tecla-larga" onclick="adicionarCaractere('7')">7</button>
+                            <button class="tecla tecla-larga" onclick="adicionarCaractere('8')">8</button>
+                            <button class="tecla tecla-larga" onclick="adicionarCaractere('9')">9</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h3>${titulo}</h3>
+                    <input type="text" id="inputDestino" class="input-virtual" readonly placeholder="${placeholder}">
+                    ${tecladoHTML}
+                    <div class="teclado-acoes">
+                        <button class="btn-voltar-modal" onclick="apagarCaractere()">⌫ Apagar</button>
+                        <button class="btn-voltar-modal" onclick="abrirOpcoesEntrega('${pref}')">${t.voltar}</button>
+                        <button class="btn-confirmar-modal" onclick="concluirEnvioRemoto('${pref}', '${tipo}')">${t.confirmar}</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function adicionarCaractere(char) {
+            const input = document.getElementById('inputDestino');
+            if (input) input.value += char;
+        }
+
+        function apagarCaractere() {
+            const input = document.getElementById('inputDestino');
+            if (input) input.value = input.value.slice(0, -1);
+        }
+
+        function fecharModal() {
+            document.getElementById('modalContainer').style.display = 'none';
+        }
+
+        function concluirEnvioRemoto(pref, tipo) {
+            const input = document.getElementById('inputDestino');
+            const valor = input ? input.value.trim() : '';
+
+            if (!valor) {
+                alert('Por favor, preencha o campo correspondente.');
+                return;
+            }
+
+            fecharModal();
+            gerarSenha(pref, tipo, valor);
+        }
+
+        function gerarSenha(pref, modo = 'tela', destino = '') {
+            if (emProcessamento) return;
+            emProcessamento = true;
+            fecharModal();
+
+            const btnGeral = document.getElementById('btnGeral');
+            const btnPrioritario = document.getElementById('btnPrioritario');
+            btnGeral.disabled = true;
+            btnPrioritario.disabled = true;
+
+            tocarBip(pref);
+
+            docRefEstado.get().then((doc) => {
+                let estado = doc.exists ? doc.data() : {};
+
+                if (!estado.contadores) estado.contadores = { A: 0, P: 0 };
+                estado.contadores[pref] = (estado.contadores[pref] || 0) + 1;
+
+                const numeroFormatado = String(estado.contadores[pref]).padStart(3, '0');
+                const codigoSenha = `${pref}-${numeroFormatado}`;
+                const agora = new Date();
+                const horaFormatada = agora.toLocaleTimeString('pt-PT');
+                
+                const idiomaAtual = localStorage.getItem(CHAVE_IDIOMA) || 'pt';
+                const t = traducoes[idiomaAtual] || traducoes['pt'];
+                const tipoNome = pref === 'A' ? t.nomeGeral : t.nomePrioritario;
+
+                let registo = `[${agora.toLocaleDateString('pt-PT')} ${horaFormatada}] Senha: ${codigoSenha} | Tipo: ${tipoNome}`;
+                if (modo === 'sms') registo += ` | SMS: ${destino}`;
+                if (modo === 'email') registo += ` | E-mail: ${destino}`;
+                
+                if (!estado.historico) estado.historico = [];
+                estado.historico.push(registo);
+                
+                if (estado.historico.length > 100) {
+                    estado.historico = estado.historico.slice(-100);
+                }
+
+                if (modo === 'email' && destino) {
+                    if (!estado.senhasDigitais) estado.senhasDigitais = {};
+                    estado.senhasDigitais[codigoSenha] = {
+                        canal: "email",
+                        contacto: destino,
+                        status: "pendente",
+                        timingsAtendimento: {}
+                    };
+                }
+
+                return docRefEstado.set(estado).then(async () => {
+                    // Define o texto inicial enquanto pisca
+                    document.getElementById('tituloDisplay').innerText = "A sua senha é:";
+                    const elementoSenha = document.getElementById('ultimaSenha');
+                    elementoSenha.innerText = codigoSenha;
+                    
+                    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+                    if (pref === 'A') {
+                        elementoSenha.style.color = isLight ? '#0284c7' : '#0ea5e9';
+                    } else {
+                        elementoSenha.style.color = isLight ? '#dc2626' : '#ef4444';
+                    }
+                    
+                    // Inicia a animação de piscar
+                    animarVisor(pref);
+
+                    // Após 30 segundos (30000ms), para de piscar e altera o texto para "Última senha retirada é:"
+                    setTimeout(() => {
+                        const box = document.getElementById('boxDisplay');
+                        box.classList.remove('animar-geral', 'animar-prioritario');
+                        document.getElementById('tituloDisplay').innerText = "Última senha retirada é:";
+                    }, 30000);
+
+                    if (modo === 'email' && destino) {
+                        try {
+                            const respostaResend = await fetch("https://api.resend.com/emails", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "Authorization": `Bearer ${RESEND_API_KEY}`
+                                },
+                                body: JSON.stringify({
+                                    from: "Quiosque <onboarding@resend.dev>",
+                                    to: [destino],
+                                    subject: `A sua senha de atendimento: ${codigoSenha}`,
+                                    html: `
+                                        <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 400px; margin: auto; border: 1px solid #e2e8f0; border-radius: 10px;">
+                                            <h2 style="color: #0284c7; text-align: center;">Painel de Atendimento</h2>
+                                            <p>Olá! A sua senha foi emitida com sucesso.</p>
+                                            <div style="background: #f0f4f8; padding: 20px; border-radius: 10px; text-align: center; margin: 20px 0;">
+                                                <span style="font-size: 13px; color: #666; text-transform: uppercase; letter-spacing: 1px;">A sua senha</span>
+                                                <h1 style="font-size: 48px; color: #0284c7; margin: 10px 0;">${codigoSenha}</h1>
+                                            </div>
+                                            <p style="text-align: center; font-size: 13px; color: #666;">Por favor, aguarde ser chamado nos painéis de atendimento.</p>
+                                        </div>
+                                    `
+                                })
+                            });
+
+                            if (!respostaResend.ok) {
+                                throw new Error("Erro ao enviar e-mail pela Resend.");
+                            }
+                            alert(`${t.sucessoEnvio} ${codigoSenha} enviado para ${destino}`);
+                        } catch (errResend) {
+                            console.error("Erro Resend:", errResend);
+                            alert("Senha gerada, mas ocorreu um erro ao enviar o e-mail.");
+                        }
+                    } else if (modo === 'sms') {
+                        alert(`${t.sucessoEnvio} (${codigoSenha})`);
+                    }
+                });
+            }).catch((err) => {
+                console.error("Erro ao gerar senha no Firebase:", err);
+            }).finally(() => {
+                setTimeout(() => {
+                    emProcessamento = false;
+                    btnGeral.disabled = false;
+                    btnPrioritario.disabled = false;
+                }, 1000);
+            });
+        }
+
+        window.onload = () => {
+            inicializarTema();
+            inicializarIdioma();
+        };
+    </script>
+</body>
+</html>
